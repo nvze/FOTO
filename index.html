@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload ke GitHub - Folder FOTO</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 30px;
+    width: 100%;
+    max-width: 500px;
+  }
+  h1 {
+    color: #333;
+    font-size: 22px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .subtitle {
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  input, select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    transition: border 0.2s;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  input[type="file"] {
+    padding: 8px;
+    background: #f8f9ff;
+    cursor: pointer;
+  }
+  button {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  button:hover:not(:disabled) { transform: translateY(-2px); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #status {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    display: none;
+  }
+  .success { background: #d4edda; color: #155724; display: block !important; }
+  .error { background: #f8d7da; color: #721c24; display: block !important; }
+  .info { background: #d1ecf1; color: #0c5460; display: block !important; }
+  .preview {
+    max-width: 100%;
+    margin: 12px 0;
+    border-radius: 10px;
+    display: none;
+  }
+  .note {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📤 Upload ke GitHub</h1>
+  <p class="subtitle">File akan disimpan di folder <b>FOTO</b></p>
+
+  <label>Token GitHub (Personal Access Token)</label>
+  <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx">
+
+  <label>Username GitHub</label>
+  <input type="text" id="username" placeholder="username-anda">
+
+  <label>Nama Repository</label>
+  <input type="text" id="repo" placeholder="nama-repo">
+
+  <label>Pilih File / Foto</label>
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.doc,.docx">
+  <img id="preview" class="preview" alt="preview">
+
+  <button id="uploadBtn">🚀 Upload ke Folder FOTO</button>
+
+  <div id="status"></div>
+
+  <p class="note">
+    Token bisa dibuat di GitHub → Settings → Developer settings → Personal access tokens.<br>
+    Pastikan token punya akses <b>repo</b> (contents: write).
+  </p>
+</div>
+
+<script>
+const FOLDER = "FOTO"; // <-- nama folder tujuan di repo GitHub
+
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const statusEl = document.getElementById('status');
+const uploadBtn = document.getElementById('uploadBtn');
+
+// Preview gambar
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+function showStatus(msg, type) {
+  statusEl.textContent = msg;
+  statusEl.className = type;
+}
+
+// Konversi file ke Base64
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+uploadBtn.addEventListener('click', async () => {
+  const token = document.getElementById('token').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const repo = document.getElementById('repo').value.trim();
+  const file = fileInput.files[0];
+
+  if (!token || !username || !repo) {
+    return showStatus('⚠️ Token, username, dan repo wajib diisi!', 'error');
+  }
+  if (!file) {
+    return showStatus('⚠️ Pilih file terlebih dahulu!', 'error');
+  }
+
+  uploadBtn.disabled = true;
+  showStatus('⏳ Mengunggah...', 'info');
+
+  try {
+    const base64 = await toBase64(file);
+    const path = `${FOLDER}/${file.name}`;
+    const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+
+    // Cek apakah file sudah ada (untuk dapat SHA jika update)
+    let sha = null;
+    const checkRes = await fetch(apiUrl, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      sha = existing.sha;
+    }
+
+    // Upload / update file
+    const body = {
+      message: `Upload ${file.name} ke folder ${FOLDER}`,
+      content: base64
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showStatus('✅ Berhasil diupload ke folder FOTO!', 'success');
+      console.log('URL:', data.content.html_url);
+    } else {
+      showStatus('❌ Gagal: ' + (data.message || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    showStatus('❌ Error: ' + err.message, 'error');
+  } finally {
+    uploadBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
