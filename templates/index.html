@@ -3,179 +3,410 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Upload Banyak Foto ke GitHub - Folder FOTO</title>
+<title>CyberCore - GitHub Multi-Uploader</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-color: #0b0d19;
+    --card-bg: rgba(18, 22, 41, 0.65);
+    --accent-cyan: #00f3ff;
+    --accent-purple: #9d4edd;
+    --accent-pink: #ff007f;
+    --text-primary: #f0f4f8;
+    --text-secondary: #94a3b8;
+    --input-bg: rgba(10, 14, 29, 0.8);
+    --border-glow: rgba(0, 243, 255, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, -apple-system, sans-serif; }
+
   body {
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 30px 20px;
+    perspective: 1200px;
+    overflow-x: hidden;
+    position: relative;
   }
+
+  /* Dynamic Animated Background Blobs for 3D Depth */
+  body::before, body::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    z-index: -1;
+    animation: float 10s infinite alternate ease-in-out;
+  }
+  body::before {
+    width: 350px;
+    height: 350px;
+    background: var(--accent-cyan);
+    top: 10%;
+    left: 15%;
+    opacity: 0.25;
+  }
+  body::after {
+    width: 400px;
+    height: 400px;
+    background: var(--accent-purple);
+    bottom: 10%;
+    right: 15%;
+    opacity: 0.3;
+    animation-delay: -5s;
+  }
+
+  @keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(40px, 50px) scale(1.1); }
+  }
+
+  /* 3D Cyber Card Container */
   .container {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    padding: 30px;
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(0, 243, 255, 0.4);
+    border-left: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: 24px;
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.8),
+      inset 0 0 20px rgba(0, 243, 255, 0.05),
+      0 0 40px rgba(0, 243, 255, 0.1);
+    padding: 40px;
     width: 100%;
-    max-width: 550px;
+    max-width: 580px;
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
+
+  .container:hover {
+    box-shadow: 
+      0 35px 70px rgba(0, 0, 0, 0.9),
+      inset 0 0 25px rgba(0, 243, 255, 0.1),
+      0 0 50px rgba(0, 243, 255, 0.2);
+  }
+
+  /* Header Section */
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
   h1 {
-    color: #333;
-    font-size: 22px;
-    margin-bottom: 6px;
-    text-align: center;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
   }
+
   .subtitle {
-    color: #888;
+    color: var(--text-secondary);
     font-size: 13px;
-    text-align: center;
-    margin-bottom: 24px;
+    letter-spacing: 0.5px;
   }
+  .subtitle b {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+  }
+
+  /* Form Controls */
+  .form-group {
+    margin-bottom: 18px;
+  }
+
   label {
     display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
   }
-  input, select {
+
+  input[type="text"], input[type="password"] {
     width: 100%;
-    padding: 11px 14px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 14px;
-    margin-bottom: 16px;
-    transition: border 0.2s;
-  }
-  input:focus, select:focus {
-    outline: none;
-    border-color: #667eea;
-  }
-  input[type="file"] {
-    padding: 8px;
-    background: #f8f9ff;
-    cursor: pointer;
-  }
-  button {
-    width: 100%;
-    padding: 13px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 13px 16px;
+    background: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.15s, opacity 0.2s;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
   }
-  button:hover:not(:disabled) { transform: translateY(-2px); }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
-  #status {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 13px;
+
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  /* Custom 3D File Upload Area */
+  .file-dropzone {
+    position: relative;
+    border: 2px dashed rgba(0, 243, 255, 0.3);
+    background: rgba(10, 14, 29, 0.5);
+    border-radius: 14px;
+    padding: 20px;
     text-align: center;
-    display: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
-  .success { background: #d4edda; color: #155724; display: block !important; }
-  .error { background: #f8d7da; color: #721c24; display: block !important; }
-  .info { background: #d1ecf1; color: #0c5460; display: block !important; }
+
+  .file-dropzone:hover {
+    background: rgba(0, 243, 255, 0.05);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+  }
+
+  input[type="file"] {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file-dropzone-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+
+  .file-dropzone-text span {
+    color: var(--accent-cyan);
+    font-weight: bold;
+  }
+
+  /* Thumbnails Grid */
   .preview-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
-    max-height: 150px;
+    gap: 10px;
+    margin-top: 12px;
+    max-height: 140px;
     overflow-y: auto;
+    padding-right: 4px;
   }
+
   .preview-thumb {
-    width: 60px;
-    height: 60px;
+    width: 65px;
+    height: 65px;
     object-fit: cover;
-    border-radius: 8px;
-    display: none;
-    border: 1px solid #ddd;
-  }
-  .result-box {
-    margin-top: 16px;
-    display: none;
-    background: #f8f9fa;
-    padding: 12px;
     border-radius: 10px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--accent-cyan);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 10px rgba(0, 243, 255, 0.2);
+    transition: transform 0.2s ease;
   }
-  .result-box label {
-    margin-bottom: 4px;
-    font-size: 12px;
-    color: #555;
+
+  .preview-thumb:hover {
+    transform: scale(1.1) translateZ(10px);
   }
+
+  /* 3D Action Button */
+  .btn-3d {
+    width: 100%;
+    padding: 15px;
+    margin-top: 10px;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 8px 25px rgba(0, 243, 255, 0.3), 0 4px 0 #4a154b;
+    transition: all 0.15s ease;
+  }
+
+  .btn-3d:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(0, 243, 255, 0.5), 0 6px 0 #4a154b;
+  }
+
+  .btn-3d:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 4px 15px rgba(0, 243, 255, 0.3), 0 1px 0 #4a154b;
+  }
+
+  .btn-3d:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Status Messages */
+  #status {
+    margin-top: 20px;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 600;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid #10b981;
+    color: #34d399;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    display: block !important;
+  }
+
+  .error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #f87171;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+    display: block !important;
+  }
+
+  .info {
+    background: rgba(0, 243, 255, 0.15);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+    display: block !important;
+  }
+
+  /* Result Output Section */
+  .result-box {
+    margin-top: 22px;
+    display: none;
+    background: rgba(10, 14, 29, 0.9);
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    animation: fadeIn 0.4s ease;
+  }
+
   .copy-wrapper {
     display: flex;
-    gap: 8px;
+    gap: 10px;
+    margin-top: 8px;
   }
+
   .copy-wrapper input {
     margin-bottom: 0;
-    background: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    color: var(--accent-cyan);
+    font-family: monospace;
     font-size: 12px;
   }
-  .copy-wrapper button {
-    width: 110px;
+
+  .copy-btn {
+    width: 120px;
     padding: 0;
-    font-size: 13px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 0, 127, 0.3);
+    transition: all 0.2s ease;
   }
+
+  .copy-btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 18px rgba(255, 0, 127, 0.5);
+  }
+
   .note {
     font-size: 11px;
-    color: #999;
+    color: var(--text-secondary);
     text-align: center;
-    margin-top: 14px;
-    line-height: 1.5;
+    margin-top: 20px;
+    line-height: 1.6;
   }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar Customization */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  ::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 4px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>📤 Upload Banyak Foto ke GitHub</h1>
-  <p class="subtitle">File akan disimpan di folder <b>FOTO</b></p>
 
-  <label>Token GitHub (Personal Access Token)</label>
-  <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx">
+<div class="container" id="cardContainer">
+  <div class="header">
+    <h1>⚡ GITHUB UPLOADER</h1>
+    <p class="subtitle">Penyimpanan Otomatis ke Folder <b>FOTO</b></p>
+  </div>
 
-  <label>Username GitHub</label>
-  <input type="text" id="username" placeholder="username-anda">
+  <div class="form-group">
+    <label>Personal Access Token</label>
+    <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+  </div>
 
-  <label>Nama Repository</label>
-  <input type="text" id="repo" placeholder="nama-repo">
+  <div class="form-group">
+    <label>Username GitHub</label>
+    <input type="text" id="username" placeholder="username-anda">
+  </div>
 
-  <label>Pilih Banyak File / Foto</label>
-  <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
-  <div id="previewContainer" class="preview-container"></div>
+  <div class="form-group">
+    <label>Nama Repository</label>
+    <input type="text" id="repo" placeholder="nama-repo">
+  </div>
 
-  <button id="uploadBtn">🚀 Upload Semua ke Folder FOTO</button>
+  <div class="form-group">
+    <label>Pilih File / Banyak Foto</label>
+    <div class="file-dropzone">
+      <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
+      <div class="file-dropzone-text">
+        📁 Klik atau seret file ke sini<br>
+        <span>(Bisa pilih banyak foto)</span>
+      </div>
+    </div>
+    <div id="previewContainer" class="preview-container"></div>
+  </div>
+
+  <button id="uploadBtn" class="btn-3d">🚀 UPLOAD SEKARANG</button>
 
   <div id="status"></div>
 
-  <!-- Kotak Hasil Kumpulan Link Raw -->
+  <!-- Output Link Raw -->
   <div id="resultBox" class="result-box">
     <label>Kumpulan Link Raw (Dipisah Koma):</label>
     <div class="copy-wrapper">
       <input type="text" id="rawLinkOutput" readonly>
-      <button id="copyBtn" type="button">Salin Semua</button>
+      <button id="copyBtn" class="copy-btn" type="button">Salin Semua</button>
     </div>
   </div>
 
   <p class="note">
-    Token bisa dibuat di GitHub → Settings → Developer settings → Personal access tokens.<br>
-    Pastikan token punya akses <b>repo</b> (contents: write).
+    Token dapat dibuat melalui GitHub → Settings → Developer settings → Personal access tokens.<br>
+    Pastikan token mengaktifkan izin <b>repo</b> (contents: write)[cite: 1].
   </p>
 </div>
 
 <script>
-const FOLDER = "FOTO"; // <-- nama folder tujuan di repo GitHub
+const FOLDER = "FOTO"; // Folder tujuan
 
 const fileInput = document.getElementById('fileInput');
 const previewContainer = document.getElementById('previewContainer');
@@ -184,8 +415,16 @@ const uploadBtn = document.getElementById('uploadBtn');
 const resultBox = document.getElementById('resultBox');
 const rawLinkOutput = document.getElementById('rawLinkOutput');
 const copyBtn = document.getElementById('copyBtn');
+const cardContainer = document.getElementById('cardContainer');
 
-// Preview banyak gambar
+// Efek Tilt 3D pada Card saat Mouse Bergerak
+document.addEventListener('mousemove', (e) => {
+  const xAxis = (window.innerWidth / 2 - e.pageX) / 30;
+  const yAxis = (window.innerHeight / 2 - e.pageY) / 30;
+  cardContainer.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+});
+
+// Preview Gambar Multi-File
 fileInput.addEventListener('change', () => {
   previewContainer.innerHTML = '';
   resultBox.style.display = 'none';
@@ -199,7 +438,6 @@ fileInput.addEventListener('change', () => {
         const img = document.createElement('img');
         img.src = e.target.result;
         img.className = 'preview-thumb';
-        img.style.display = 'block';
         previewContainer.appendChild(img);
       };
       reader.readAsDataURL(file);
@@ -212,7 +450,7 @@ function showStatus(msg, type) {
   statusEl.className = type;
 }
 
-// Konversi file ke Base64
+// Konversi File ke Base64
 function toBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -222,6 +460,7 @@ function toBase64(file) {
   });
 }
 
+// Proses Upload
 uploadBtn.addEventListener('click', async () => {
   const token = document.getElementById('token').value.trim();
   const username = document.getElementById('username').value.trim();
@@ -250,7 +489,7 @@ uploadBtn.addEventListener('click', async () => {
       const path = `${FOLDER}/${file.name}`;
       const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
 
-      // Cek apakah file sudah ada (untuk ambil SHA)
+      // Cek apakah file sudah ada
       let sha = null;
       const checkRes = await fetch(apiUrl, {
         headers: { Authorization: `token ${token}` }
@@ -260,7 +499,7 @@ uploadBtn.addEventListener('click', async () => {
         sha = existing.sha;
       }
 
-      // Upload / update file
+      // Upload/update
       const body = {
         message: `Upload ${file.name} ke folder ${FOLDER}`,
         content: base64
@@ -278,7 +517,6 @@ uploadBtn.addEventListener('click', async () => {
 
       if (res.ok) {
         successCount++;
-        // Format Link Raw GitHub (gunakan 'main' atau sesuaikan jika 'master')
         const rawUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/${FOLDER}/${file.name}`;
         rawLinks.push(rawUrl);
       } else {
@@ -289,10 +527,9 @@ uploadBtn.addEventListener('click', async () => {
     }
   }
 
-  // Tampilkan status akhir dan hasil link jika ada yang berhasil
   if (successCount > 0) {
     showStatus(`✅ Berhasil mengunggah ${successCount} file! (${failCount} gagal)`, 'success');
-    rawLinkOutput.value = rawLinks.join(','); // Digabung dengan tanda koma
+    rawLinkOutput.value = rawLinks.join(','); // Gabung dengan tanda koma
     resultBox.style.display = 'block';
   } else {
     showStatus('❌ Gagal mengunggah semua file.', 'error');
@@ -301,7 +538,7 @@ uploadBtn.addEventListener('click', async () => {
   uploadBtn.disabled = false;
 });
 
-// Fitur Salin Semua Link
+// Fitur Copy
 copyBtn.addEventListener('click', () => {
   rawLinkOutput.select();
   rawLinkOutput.setSelectionRange(0, 99999);
