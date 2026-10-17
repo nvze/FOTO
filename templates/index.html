@@ -85,24 +85,22 @@
   .success { background: #d4edda; color: #155724; display: block !important; }
   .error { background: #f8d7da; color: #721c24; display: block !important; }
   .info { background: #d1ecf1; color: #0c5460; display: block !important; }
-  
   .preview-container {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
-    max-height: 120px;
-    overflow-y: auto;
+    gap: 8px;
     margin: 12px 0;
+    max-height: 150px;
+    overflow-y: auto;
   }
   .preview-thumb {
     width: 60px;
     height: 60px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #ccc;
     display: none;
+    border: 1px solid #ddd;
   }
-  
   .result-box {
     margin-top: 16px;
     display: none;
@@ -112,27 +110,23 @@
     border: 1px solid #e0e0e0;
   }
   .result-box label {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-size: 12px;
     color: #555;
+  }
+  .copy-wrapper {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 8px;
   }
-  textarea {
-    width: 100%;
-    height: 100px;
-    padding: 10px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 12px;
-    resize: vertical;
+  .copy-wrapper input {
+    margin-bottom: 0;
     background: #fff;
-    margin-bottom: 8px;
+    font-size: 12px;
   }
-  textarea:focus {
-    outline: none;
-    border-color: #667eea;
+  .copy-wrapper button {
+    width: 110px;
+    padding: 0;
+    font-size: 13px;
   }
   .note {
     font-size: 11px;
@@ -157,22 +151,21 @@
   <label>Nama Repository</label>
   <input type="text" id="repo" placeholder="nama-repo">
 
-  <label>Pilih Banyak File / Foto (Bisa pilih sekaligus)</label>
+  <label>Pilih Banyak File / Foto</label>
   <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
-  
   <div id="previewContainer" class="preview-container"></div>
 
   <button id="uploadBtn">🚀 Upload Semua ke Folder FOTO</button>
 
   <div id="status"></div>
 
-  <!-- Kotak Hasil Banyak Link Raw -->
+  <!-- Kotak Hasil Kumpulan Link Raw -->
   <div id="resultBox" class="result-box">
-    <label>
-      <span>Daftar Link Raw GitHub:</span>
-      <button id="copyAllBtn" type="button" style="width: auto; padding: 4px 10px; font-size: 11px;">Salin Semua</button>
-    </label>
-    <textarea id="rawLinksOutput" readonly></textarea>
+    <label>Kumpulan Link Raw (Dipisah Koma):</label>
+    <div class="copy-wrapper">
+      <input type="text" id="rawLinkOutput" readonly>
+      <button id="copyBtn" type="button">Salin Semua</button>
+    </div>
   </div>
 
   <p class="note">
@@ -189,10 +182,10 @@ const previewContainer = document.getElementById('previewContainer');
 const statusEl = document.getElementById('status');
 const uploadBtn = document.getElementById('uploadBtn');
 const resultBox = document.getElementById('resultBox');
-const rawLinksOutput = document.getElementById('rawLinksOutput');
-const copyAllBtn = document.getElementById('copyAllBtn');
+const rawLinkOutput = document.getElementById('rawLinkOutput');
+const copyBtn = document.getElementById('copyBtn');
 
-// Preview multiple gambar
+// Preview banyak gambar
 fileInput.addEventListener('change', () => {
   previewContainer.innerHTML = '';
   resultBox.style.display = 'none';
@@ -243,11 +236,10 @@ uploadBtn.addEventListener('click', async () => {
   }
 
   uploadBtn.disabled = true;
-  showStatus(`⏳ Mengunggah 0/${files.length} file...`, 'info');
   resultBox.style.display = 'none';
-
-  let successCount = 0;
   let rawLinks = [];
+  let successCount = 0;
+  let failCount = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -258,7 +250,7 @@ uploadBtn.addEventListener('click', async () => {
       const path = `${FOLDER}/${file.name}`;
       const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
 
-      // Cek apakah file sudah ada untuk mengambil SHA jika update
+      // Cek apakah file sudah ada (untuk ambil SHA)
       let sha = null;
       const checkRes = await fetch(apiUrl, {
         headers: { Authorization: `token ${token}` }
@@ -268,7 +260,7 @@ uploadBtn.addEventListener('click', async () => {
         sha = existing.sha;
       }
 
-      // Payload upload / update
+      // Upload / update file
       const body = {
         message: `Upload ${file.name} ke folder ${FOLDER}`,
         content: base64
@@ -286,35 +278,38 @@ uploadBtn.addEventListener('click', async () => {
 
       if (res.ok) {
         successCount++;
-        // Buat link raw untuk file ini
+        // Format Link Raw GitHub (gunakan 'main' atau sesuaikan jika 'master')
         const rawUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/${FOLDER}/${file.name}`;
         rawLinks.push(rawUrl);
+      } else {
+        failCount++;
       }
     } catch (err) {
-      console.error(`Gagal upload ${file.name}:`, err);
+      failCount++;
     }
   }
 
+  // Tampilkan status akhir dan hasil link jika ada yang berhasil
   if (successCount > 0) {
-    showStatus(`✅ Berhasil mengunggah ${successCount} dari ${files.length} file ke folder FOTO!`, 'success');
-    rawLinksOutput.value = rawLinks.join('\n');
+    showStatus(`✅ Berhasil mengunggah ${successCount} file! (${failCount} gagal)`, 'success');
+    rawLinkOutput.value = rawLinks.join(','); // Digabung dengan tanda koma
     resultBox.style.display = 'block';
   } else {
-    showStatus('❌ Gagal mengunggah semua file. Periksa kembali token dan repo Anda.', 'error');
+    showStatus('❌ Gagal mengunggah semua file.', 'error');
   }
 
   uploadBtn.disabled = false;
 });
 
 // Fitur Salin Semua Link
-copyAllBtn.addEventListener('click', () => {
-  rawLinksOutput.select();
-  rawLinksOutput.setSelectionRange(0, 99999);
-  navigator.clipboard.writeText(rawLinksOutput.value);
+copyBtn.addEventListener('click', () => {
+  rawLinkOutput.select();
+  rawLinkOutput.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(rawLinkOutput.value);
   
-  copyAllBtn.textContent = 'Disalin! ✓';
+  copyBtn.textContent = 'Disalin! ✓';
   setTimeout(() => {
-    copyAllBtn.textContent = 'Salin Semua';
+    copyBtn.textContent = 'Salin Semua';
   }, 2000);
 });
 </script>
