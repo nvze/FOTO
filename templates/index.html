@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Upload ke GitHub - Folder FOTO</title>
+<title>Upload Banyak Foto ke GitHub - Folder FOTO</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -21,7 +21,7 @@
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     padding: 30px;
     width: 100%;
-    max-width: 500px;
+    max-width: 550px;
   }
   h1 {
     color: #333;
@@ -85,12 +85,24 @@
   .success { background: #d4edda; color: #155724; display: block !important; }
   .error { background: #f8d7da; color: #721c24; display: block !important; }
   .info { background: #d1ecf1; color: #0c5460; display: block !important; }
-  .preview {
-    max-width: 100%;
+  
+  .preview-container {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-height: 120px;
+    overflow-y: auto;
     margin: 12px 0;
-    border-radius: 10px;
+  }
+  .preview-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ccc;
     display: none;
   }
+  
   .result-box {
     margin-top: 16px;
     display: none;
@@ -100,23 +112,27 @@
     border: 1px solid #e0e0e0;
   }
   .result-box label {
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-size: 12px;
     color: #555;
-  }
-  .copy-wrapper {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
   }
-  .copy-wrapper input {
-    margin-bottom: 0;
-    background: #fff;
+  textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
     font-size: 12px;
+    resize: vertical;
+    background: #fff;
+    margin-bottom: 8px;
   }
-  .copy-wrapper button {
-    width: 110px;
-    padding: 0;
-    font-size: 13px;
+  textarea:focus {
+    outline: none;
+    border-color: #667eea;
   }
   .note {
     font-size: 11px;
@@ -129,7 +145,7 @@
 </head>
 <body>
 <div class="container">
-  <h1>📤 Upload ke GitHub</h1>
+  <h1>📤 Upload Banyak Foto ke GitHub</h1>
   <p class="subtitle">File akan disimpan di folder <b>FOTO</b></p>
 
   <label>Token GitHub (Personal Access Token)</label>
@@ -141,21 +157,22 @@
   <label>Nama Repository</label>
   <input type="text" id="repo" placeholder="nama-repo">
 
-  <label>Pilih File / Foto</label>
-  <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.doc,.docx">
-  <img id="preview" class="preview" alt="preview">
+  <label>Pilih Banyak File / Foto (Bisa pilih sekaligus)</label>
+  <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
+  
+  <div id="previewContainer" class="preview-container"></div>
 
-  <button id="uploadBtn">🚀 Upload ke Folder FOTO</button>
+  <button id="uploadBtn">🚀 Upload Semua ke Folder FOTO</button>
 
   <div id="status"></div>
 
-  <!-- Kotak Hasil Link Raw -->
+  <!-- Kotak Hasil Banyak Link Raw -->
   <div id="resultBox" class="result-box">
-    <label>Link Raw GitHub:</label>
-    <div class="copy-wrapper">
-      <input type="text" id="rawLinkOutput" readonly>
-      <button id="copyBtn" type="button">Salin Link</button>
-    </div>
+    <label>
+      <span>Daftar Link Raw GitHub:</span>
+      <button id="copyAllBtn" type="button" style="width: auto; padding: 4px 10px; font-size: 11px;">Salin Semua</button>
+    </label>
+    <textarea id="rawLinksOutput" readonly></textarea>
   </div>
 
   <p class="note">
@@ -168,28 +185,33 @@
 const FOLDER = "FOTO"; // <-- nama folder tujuan di repo GitHub
 
 const fileInput = document.getElementById('fileInput');
-const preview = document.getElementById('preview');
+const previewContainer = document.getElementById('previewContainer');
 const statusEl = document.getElementById('status');
 const uploadBtn = document.getElementById('uploadBtn');
 const resultBox = document.getElementById('resultBox');
-const rawLinkOutput = document.getElementById('rawLinkOutput');
-const copyBtn = document.getElementById('copyBtn');
+const rawLinksOutput = document.getElementById('rawLinksOutput');
+const copyAllBtn = document.getElementById('copyAllBtn');
 
-// Preview gambar
+// Preview multiple gambar
 fileInput.addEventListener('change', () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  resultBox.style.display = 'none'; // Sembunyikan hasil lama jika ganti file
-  if (file.type.startsWith('image/')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-  } else {
-    preview.style.display = 'none';
-  }
+  previewContainer.innerHTML = '';
+  resultBox.style.display = 'none';
+  const files = fileInput.files;
+  if (!files.length) return;
+
+  Array.from(files).forEach(file => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'preview-thumb';
+        img.style.display = 'block';
+        previewContainer.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
 });
 
 function showStatus(msg, type) {
@@ -211,81 +233,88 @@ uploadBtn.addEventListener('click', async () => {
   const token = document.getElementById('token').value.trim();
   const username = document.getElementById('username').value.trim();
   const repo = document.getElementById('repo').value.trim();
-  const file = fileInput.files[0];
+  const files = fileInput.files;
 
   if (!token || !username || !repo) {
     return showStatus('⚠️ Token, username, dan repo wajib diisi!', 'error');
   }
-  if (!file) {
-    return showStatus('⚠️ Pilih file terlebih dahulu!', 'error');
+  if (!files.length) {
+    return showStatus('⚠️ Pilih minimal satu file terlebih dahulu!', 'error');
   }
 
   uploadBtn.disabled = true;
-  showStatus('⏳ Mengunggah...', 'info');
+  showStatus(`⏳ Mengunggah 0/${files.length} file...`, 'info');
   resultBox.style.display = 'none';
 
-  try {
-    const base64 = await toBase64(file);
-    const path = `${FOLDER}/${file.name}`;
-    const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+  let successCount = 0;
+  let rawLinks = [];
 
-    // Cek apakah file sudah ada (untuk dapat SHA jika update)
-    let sha = null;
-    const checkRes = await fetch(apiUrl, {
-      headers: { Authorization: `token ${token}` }
-    });
-    if (checkRes.ok) {
-      const existing = await checkRes.json();
-      sha = existing.sha;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    showStatus(`⏳ Mengunggah (${i + 1}/${files.length}): ${file.name}...`, 'info');
+
+    try {
+      const base64 = await toBase64(file);
+      const path = `${FOLDER}/${file.name}`;
+      const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+
+      // Cek apakah file sudah ada untuk mengambil SHA jika update
+      let sha = null;
+      const checkRes = await fetch(apiUrl, {
+        headers: { Authorization: `token ${token}` }
+      });
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        sha = existing.sha;
+      }
+
+      // Payload upload / update
+      const body = {
+        message: `Upload ${file.name} ke folder ${FOLDER}`,
+        content: base64
+      };
+      if (sha) body.sha = sha;
+
+      const res = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        successCount++;
+        // Buat link raw untuk file ini
+        const rawUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/${FOLDER}/${file.name}`;
+        rawLinks.push(rawUrl);
+      }
+    } catch (err) {
+      console.error(`Gagal upload ${file.name}:`, err);
     }
-
-    // Upload / update file
-    const body = {
-      message: `Upload ${file.name} ke folder ${FOLDER}`,
-      content: base64
-    };
-    if (sha) body.sha = sha;
-
-    const res = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      showStatus('✅ Berhasil diupload ke folder FOTO!', 'success');
-      
-      // Generate Link Raw GitHub menggunakan domain raw.githubusercontent.com
-      // Format: https://raw.githubusercontent.com/username/repo/main/FOTO/nama_file
-      // Menggunakan branch 'main' secara default (bisa disesuaikan jika repo menggunakan 'master')
-      const rawUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/${FOLDER}/${file.name}`;
-      
-      rawLinkOutput.value = rawUrl;
-      resultBox.style.display = 'block';
-    } else {
-      showStatus('❌ Gagal: ' + (data.message || 'Unknown error'), 'error');
-    }
-  } catch (err) {
-    showStatus('❌ Error: ' + err.message, 'error');
-  } finally {
-    uploadBtn.disabled = false;
   }
+
+  if (successCount > 0) {
+    showStatus(`✅ Berhasil mengunggah ${successCount} dari ${files.length} file ke folder FOTO!`, 'success');
+    rawLinksOutput.value = rawLinks.join('\n');
+    resultBox.style.display = 'block';
+  } else {
+    showStatus('❌ Gagal mengunggah semua file. Periksa kembali token dan repo Anda.', 'error');
+  }
+
+  uploadBtn.disabled = false;
 });
 
-// Fitur Salin Link
-copyBtn.addEventListener('click', () => {
-  rawLinkOutput.select();
-  rawLinkOutput.setSelectionRange(0, 99999); // Untuk perangkat mobile
-  navigator.clipboard.writeText(rawLinkOutput.value);
+// Fitur Salin Semua Link
+copyAllBtn.addEventListener('click', () => {
+  rawLinksOutput.select();
+  rawLinksOutput.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(rawLinksOutput.value);
   
-  copyBtn.textContent = 'Disalin! ✓';
+  copyAllBtn.textContent = 'Disalin! ✓';
   setTimeout(() => {
-    copyBtn.textContent = 'Salin Link';
+    copyAllBtn.textContent = 'Salin Semua';
   }, 2000);
 });
 </script>
