@@ -91,6 +91,33 @@
     border-radius: 10px;
     display: none;
   }
+  .result-box {
+    margin-top: 16px;
+    display: none;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+  }
+  .result-box label {
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #555;
+  }
+  .copy-wrapper {
+    display: flex;
+    gap: 8px;
+  }
+  .copy-wrapper input {
+    margin-bottom: 0;
+    background: #fff;
+    font-size: 12px;
+  }
+  .copy-wrapper button {
+    width: 110px;
+    padding: 0;
+    font-size: 13px;
+  }
   .note {
     font-size: 11px;
     color: #999;
@@ -122,6 +149,15 @@
 
   <div id="status"></div>
 
+  <!-- Kotak Hasil Link Raw -->
+  <div id="resultBox" class="result-box">
+    <label>Link Raw GitHub:</label>
+    <div class="copy-wrapper">
+      <input type="text" id="rawLinkOutput" readonly>
+      <button id="copyBtn" type="button">Salin Link</button>
+    </div>
+  </div>
+
   <p class="note">
     Token bisa dibuat di GitHub → Settings → Developer settings → Personal access tokens.<br>
     Pastikan token punya akses <b>repo</b> (contents: write).
@@ -135,11 +171,15 @@ const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
 const statusEl = document.getElementById('status');
 const uploadBtn = document.getElementById('uploadBtn');
+const resultBox = document.getElementById('resultBox');
+const rawLinkOutput = document.getElementById('rawLinkOutput');
+const copyBtn = document.getElementById('copyBtn');
 
 // Preview gambar
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
+  resultBox.style.display = 'none'; // Sembunyikan hasil lama jika ganti file
   if (file.type.startsWith('image/')) {
     const reader = new FileReader();
     reader.onload = e => {
@@ -182,6 +222,7 @@ uploadBtn.addEventListener('click', async () => {
 
   uploadBtn.disabled = true;
   showStatus('⏳ Mengunggah...', 'info');
+  resultBox.style.display = 'none';
 
   try {
     const base64 = await toBase64(file);
@@ -218,7 +259,14 @@ uploadBtn.addEventListener('click', async () => {
 
     if (res.ok) {
       showStatus('✅ Berhasil diupload ke folder FOTO!', 'success');
-      console.log('URL:', data.content.html_url);
+      
+      // Generate Link Raw GitHub menggunakan domain raw.githubusercontent.com
+      // Format: https://raw.githubusercontent.com/username/repo/main/FOTO/nama_file
+      // Menggunakan branch 'main' secara default (bisa disesuaikan jika repo menggunakan 'master')
+      const rawUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/${FOLDER}/${file.name}`;
+      
+      rawLinkOutput.value = rawUrl;
+      resultBox.style.display = 'block';
     } else {
       showStatus('❌ Gagal: ' + (data.message || 'Unknown error'), 'error');
     }
@@ -227,6 +275,18 @@ uploadBtn.addEventListener('click', async () => {
   } finally {
     uploadBtn.disabled = false;
   }
+});
+
+// Fitur Salin Link
+copyBtn.addEventListener('click', () => {
+  rawLinkOutput.select();
+  rawLinkOutput.setSelectionRange(0, 99999); // Untuk perangkat mobile
+  navigator.clipboard.writeText(rawLinkOutput.value);
+  
+  copyBtn.textContent = 'Disalin! ✓';
+  setTimeout(() => {
+    copyBtn.textContent = 'Salin Link';
+  }, 2000);
 });
 </script>
 </body>
